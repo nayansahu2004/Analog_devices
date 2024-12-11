@@ -1,22 +1,20 @@
 from ultralytics import YOLO
+from ultralytics.yolo.engine.train import Trainer
+from ultralytics.yolo.utils.datasets import LoadImagesAndLabels
 
-# Initialize the model
+# Custom class that inherits from LoadImagesAndLabels to log image-label pairs
+class CustomDataset(LoadImagesAndLabels):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __getitem__(self, index):
+        # Access the image and label paths
+        img, lbl, img_path, lbl_path, shapes = super().__getitem__(index)
+        print(f"Image: {img_path}, Label: {lbl_path}")
+        return img, lbl, img_path, lbl_path, shapes
+
+# Initialize YOLO model
 model = YOLO("yolov8.pt")
 
-# Custom callback to print images and labels during training
-def print_image_labels(batch):
-    # Access the image and label filenames
-    for img, lbl in zip(batch['img'], batch['label']):
-        img_path = batch['path'][0]  # Image path (if available)
-        lbl_path = img_path.replace(img_path.split('.')[-1], 'txt')  # Assuming label has .txt extension
-        print(f"Image: {img_path}, Label: {lbl_path}")
-
-# Train the model
-results = model.train(
-    data="config.yaml", 
-    batch=16, 
-    epochs=1, 
-    imgsz=640,
-    callbacks=[print_image_labels]  # Add custom callback
-)
-
+# Override the default dataset loading method with the custom one
+model.train(data="config.yaml", batch=16, epochs=1, imgsz=640, dataset=CustomDataset)
